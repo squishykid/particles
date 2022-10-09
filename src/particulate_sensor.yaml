@@ -21,9 +21,13 @@ wifi:
 
 captive_portal:
 uart:
-  rx_pin: GPIO4
-  baud_rate: 9600
-  id: pms_uart
+  - rx_pin: GPIO4
+    baud_rate: 9600
+    id: pms_uart
+  - rx_pin: GPIO14
+    tx_pin: GPIO12
+    baud_rate: 9600
+    id: sensair_uart
 
 globals:
   - id: pm_1_measurements
@@ -49,12 +53,18 @@ globals:
     initial_value: '0'
 
 sensor:
+  - platform: senseair
+    co2:
+      name: "CO₂ Concentration"
+    update_interval: 60s
+    uart_id: sensair_uart
   - platform: pmsx003
     type: PMSX003
     uart_id: pms_uart
     pm_1_0:
       name: "Particulate Matter <1.0µm Concentration Raw"
       id: pm_1_raw
+      internal: true
       on_value:
         then:
           - lambda: |-
@@ -76,6 +86,7 @@ sensor:
     pm_2_5:
       name: "Particulate Matter <2.5µm Concentration Raw"
       id: pm_25_raw
+      internal: true
       on_value:
         then:
           - lambda: |-
@@ -97,6 +108,7 @@ sensor:
     pm_10_0:
       name: "Particulate Matter <10.0µm Concentration Raw"
       id: pm_10_raw
+      internal: true
       on_value:
         then:
           - lambda: |-
@@ -142,10 +154,11 @@ switch:
       inverted: no
     id: pms_set
     name: "Particulate Matter Sensor Enabled"
+    internal: true
 
 interval:
 #Controls Sleep Interval by turning on/off above switch
-  - interval: 180s
+  - interval: 300s
     then:
       - switch.turn_on: pms_set
       - delay: 60s
@@ -155,6 +168,7 @@ binary_sensor:
   - platform: template
     name: "Particulate Matter Sensor Warm"
     id: pms_warm
+    internal: true
     lambda: |-
       if (id(pms_set).state) {
         return true;
