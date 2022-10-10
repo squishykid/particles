@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name "USB-C-Power-tester")(type "KiCad")(uri "C:/Users/lewys/Downloads/USB-C-Connectors-master/USB-C-Connectors-master/Kicad/Footprints/USB-C-Power-tester.pretty")(options "")(descr ""))
+)
