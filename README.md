@@ -5,7 +5,7 @@ ESP8266 and ESPHome based sensor unit
 ## Sensors
 
 - PMS7003 Particulate Sensor (including PM2.5)
-- SenseAir S8 (coming soon)
+- SenseAir S8
 
 ## Directories
 
