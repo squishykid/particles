@@ -30,24 +30,10 @@ uart:
     id: sensair_uart
 
 globals:
-  - id: pm_1_measurements
-    type: float[32]
-    restore_value: no
-  - id: pm_1_sample_count
-    type: size_t
-    restore_value: no
-    initial_value: '0'
   - id: pm_25_measurements
     type: float[32]
     restore_value: no
   - id: pm_25_sample_count
-    type: size_t
-    restore_value: no
-    initial_value: '0'
-  - id: pm_10_measurements
-    type: float[32]
-    restore_value: no
-  - id: pm_10_sample_count
     type: size_t
     restore_value: no
     initial_value: '0'
@@ -65,24 +51,6 @@ sensor:
       name: "Particulate Matter <1.0µm Concentration Raw"
       id: pm_1_raw
       internal: true
-      on_value:
-        then:
-          - lambda: |-
-              if (!id(pms_warm).state) {
-                return;
-              }
-              static bool pms_warm_previous_state;
-              bool pms_warm_current_state = id(pms_warm).state;
-
-              // reset index to 0 on edge from cold to warm
-              if (pms_warm_current_state && !pms_warm_previous_state) {
-                id(pm_1_sample_count) = 0;
-              } else {
-                id(pm_1_sample_count) += 1;
-              }
-              // store measurement
-              id(pm_1_measurements)[id(pm_1_sample_count) % 32] = id(pm_1_raw).state;
-              pms_warm_previous_state = pms_warm_current_state;
     pm_2_5:
       name: "Particulate Matter <2.5µm Concentration Raw"
       id: pm_25_raw
@@ -109,41 +77,11 @@ sensor:
       name: "Particulate Matter <10.0µm Concentration Raw"
       id: pm_10_raw
       internal: true
-      on_value:
-        then:
-          - lambda: |-
-              if (!id(pms_warm).state) {
-                return;
-              }
-              static bool pms_warm_previous_state;
-              bool pms_warm_current_state = id(pms_warm).state;
-
-              // reset index to 0 on edge from cold to warm
-              if (pms_warm_current_state && !pms_warm_previous_state) {
-                id(pm_10_sample_count) = 0;
-              } else {
-                id(pm_10_sample_count) += 1;
-              }
-              // store measurement
-              id(pm_10_measurements)[id(pm_10_sample_count) % 32] = id(pm_10_raw).state;
-              pms_warm_previous_state = pms_warm_current_state;
 
   - platform: template
-    name: "Particulate Matter <1.0µm Concentration"
-    id: pm_1
-    icon: mdi:chemical-weapon
-    unit_of_measurement: "µg/m³"
-    accuracy_decimals: 1
-  - platform: template
-    name: "Particulate Matter <2.5µm Concentration"
+    name: "Pm25"
     id: pm_25
-    icon: mdi:chemical-weapon
-    unit_of_measurement: "µg/m³"
-    accuracy_decimals: 1
-  - platform: template
-    name: "Particulate Matter <10.0µm Concentration"
-    id: pm_10
-    icon: mdi:chemical-weapon
+    icon: mdi:molecule
     unit_of_measurement: "µg/m³"
     accuracy_decimals: 1
 
@@ -182,22 +120,6 @@ binary_sensor:
         - lambda: |-
             ESP_LOGD("pm_x_calc", "Measurement collection complete. Updating synthesised sensors.");
 
-            // PM1
-            // figure out how many measurements to average
-            size_t avg_over_1 = std::min(id(pm_1_sample_count), (size_t)32);
-            if (avg_over_1 < 1) {
-              ESP_LOGE("pm_x_calc", "did not receive any pm1 samples, is sensor reporting values?");
-              id(pm_1).publish_state(NAN);
-              return;
-            }
-            // average reading and publish to template sensor
-            float sum_1 = 0.0;
-            for (size_t i = 0; i < avg_over_1; i++) {
-              sum_1 += id(pm_1_measurements)[i];
-            }
-            id(pm_1_sample_count) = 0; // reset sample count
-            id(pm_1).publish_state(sum_1 / avg_over_1); // update sensor with results
-
             // PM25
             // figure out how many measurements to average
             size_t avg_over_25 = std::min(id(pm_25_sample_count), (size_t)32);
@@ -213,19 +135,3 @@ binary_sensor:
             }
             id(pm_25_sample_count) = 0; // reset sample count
             id(pm_25).publish_state(sum_25 / avg_over_25); // update sensor with results
-
-            // PM10
-            // figure out how many measurements to average
-            size_t avg_over_10 = std::min(id(pm_10_sample_count), (size_t)32);
-            if (avg_over_10 < 1) {
-              ESP_LOGE("pm_x_calc", "did not receive any pm10 samples, is sensor reporting values?");
-              id(pm_10).publish_state(NAN);
-              return;
-            }
-            // average reading and publish to template sensor
-            float sum_10 = 0.0;
-            for (size_t i = 0; i < avg_over_10; i++) {
-              sum_10 += id(pm_10_measurements)[i];
-            }
-            id(pm_10_sample_count) = 0; // reset sample count
-            id(pm_10).publish_state(sum_10 / avg_over_10); // update sensor with results
